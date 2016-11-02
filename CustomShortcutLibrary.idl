@@ -1,0 +1,27 @@
+import "oaidl.idl";
+import "ocidl.idl";
+import "shobjidl.idl";
+
+[
+  uuid(EE9A48C8-1B1F-4985-8DA8-459209092971),
+  helpstring("Custom Shortcut Library"),
+  version(1.0),
+]
+library CustomShortcutLibrary
+{
+  importlib("stdole32.tlb");
+
+  [
+    uuid(42465C3A-83D3-4310-B27D-F271DE372764),
+    helpstring("Custom Shortcut"),
+  ]
+  coclass iQmetrixIconHandler
+  {
+    interface IPersistFile;
+    // Not sure where this is defined, but this value is only used in calls
+    // to QueryInterface anyway; the caller doesn't need to know, before
+    // instantiating the object, that IExtractIconW is implemented. :-P
+    //interface IExtractIconW;
+    interface IShellLinkW;
+  }
+}

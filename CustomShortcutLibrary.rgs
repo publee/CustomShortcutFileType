@@ -1,0 +1,62 @@
+HKCR
+{
+    ForceRemove CustomShortcutLibrary.CustomShortcut.1 = s 'Custom Shortcut'
+    {
+        CLSID = s '{42465C3A-83D3-4310-B27D-F271DE372764}'
+    }
+
+    ForceRemove CustomShortcutLibrary.CustomShortcut = s 'Custom Shortcut'
+    {
+        CLSID = s '{42465C3A-83D3-4310-B27D-F271DE372764}'
+        CurVer = s 'CustomShortcutLibrary.CustomShortcut.1'
+    }
+
+    NoRemove CLSID
+    {
+        ForceRemove {42465C3A-83D3-4310-B27D-F271DE372764} = s 'CustomShortcut Class'
+        {
+            ProgID = s 'CustomShortcutLibrary.CustomShortcut.1'
+            VersionIndependentProgID = s 'CustomShortcutLibrary.CustomShortcut'
+            InprocServer32 = s '%Module%'
+            {
+                val ThreadingModel = s 'Apartment'
+            }
+            TypeLib = s '{EE9A48C8-1B1F-4985-8DA8-459209092971}'
+        }
+    }
+
+    ForceRemove CustomShortcutLibrary.CustomShortcutFile = s 'Custom Shortcut'
+    {
+        val EditFlags = d &H11BFF8
+        val IsShortcut = s ''
+        val NeverShowExt = s ''
+        val NoOpenWith = s ''
+        val NoPreviousVersions = s ''
+        val NoRecentDocs = s ''
+
+        DefaultIcon = s '%Module%'
+
+        shell = s 'open'
+        {
+            open = s 'Launch Target'
+            {
+                command = s 'rundll32.exe "%Module%",ActivateShortcut %%1'
+            }
+        }
+
+        Shellex
+        {
+            IconHandler = s '{42465C3A-83D3-4310-B27D-F271DE372764}'
+            '{000214F9-0000-0000-C000-000000000046}' = s '{42465C3A-83D3-4310-B27D-F271DE372764}'
+        }
+    }
+
+    %ShortcutFileExtension% = s 'CustomShortcutLibrary.CustomShortcutFile'
+    {
+        ShellNew
+        {
+            val Data = s ''
+            val IconPath = s '%Module%'
+        }
+    }
+}
