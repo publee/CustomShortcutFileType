@@ -123,7 +123,7 @@ HRESULT STDMETHODCALLTYPE CustomShortcut::Load(LPCOLESTR pszFileName, DWORD dwMo
 
     wifstream file(_fileName);
 
-    file.imbue(locale(locale::empty(), new codecvt_utf8<wchar_t>()));
+    file.imbue(locale(locale::empty(), new codecvt_utf8<wchar_t, 0x10FFFF, std::consume_header>()));
 
     if (file)
       getline(file, _targetPath);
