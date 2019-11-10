@@ -3,6 +3,8 @@
 #include "Utilities.h"
 
 #include <InitGuid.h>
+#include <Propkey.h>
+#include <propvarutil.h>
 
 #include <atlbase.h>
 
@@ -78,6 +80,12 @@ HRESULT STDMETHODCALLTYPE CustomShortcut::QueryInterface(REFIID riid, void **ppv
     return S_OK;
   }
 
+  if (riid == IID_IPropertyStore)
+  {
+    *ppvObject = static_cast<IPropertyStore *>(this);
+    AddRef();
+    return S_OK;
+  }
   return E_NOINTERFACE;
 }
 
@@ -337,6 +345,34 @@ HRESULT STDMETHODCALLTYPE CustomShortcut::Resolve(HWND hwnd, DWORD fFlags)
 }
 
 HRESULT STDMETHODCALLTYPE CustomShortcut::SetPath(LPCWSTR pszFile)
+{
+  return E_NOTIMPL;
+}
+
+HRESULT STDMETHODCALLTYPE CustomShortcut::GetCount(DWORD * cProps)
+{
+  return E_NOTIMPL;
+}
+
+HRESULT STDMETHODCALLTYPE CustomShortcut::GetAt(DWORD iProp, PROPERTYKEY * pkey)
+{
+  return E_NOTIMPL;
+}
+
+HRESULT CustomShortcut::GetValue(REFPROPERTYKEY key, PROPVARIANT * pv)
+{
+  if (!memcmp(&key, &PKEY_AppUserModel_ID, sizeof(PROPERTYKEY))) {
+    HRESULT hr = InitPropVariantFromString(_fileName.c_str(), pv);
+  }
+  return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE CustomShortcut::SetValue(REFPROPERTYKEY key, REFPROPVARIANT propvar)
+{
+  return E_NOTIMPL;
+}
+
+HRESULT STDMETHODCALLTYPE CustomShortcut::Commit(void)
 {
   return E_NOTIMPL;
 }

@@ -6,7 +6,7 @@
 
 #include <string>
 
-class CustomShortcut : public IPersistFile, public IExtractIconW, public IShellLinkW/*, IUnknown*/
+class CustomShortcut : public IPersistFile, public IExtractIconW, public IShellLinkW, public IPropertyStore/*, IUnknown*/
 {
   ULONG _refCount;
   std::wstring _fileName;
@@ -55,4 +55,22 @@ public:
   HRESULT STDMETHODCALLTYPE SetRelativePath(LPCWSTR pszPathRel, DWORD dwReserved);
   HRESULT STDMETHODCALLTYPE Resolve(HWND hwnd, DWORD fFlags);
   HRESULT STDMETHODCALLTYPE SetPath(LPCWSTR pszFile);
+
+  //IPropertyStore
+  HRESULT STDMETHODCALLTYPE GetCount(
+    /* [out] */ __RPC__out DWORD *cProps);
+
+  HRESULT STDMETHODCALLTYPE GetAt(
+    /* [in] */ DWORD iProp,
+    /* [out] */ __RPC__out PROPERTYKEY *pkey);
+
+  HRESULT STDMETHODCALLTYPE GetValue(
+    /* [in] */ __RPC__in REFPROPERTYKEY key,
+    /* [out] */ __RPC__out PROPVARIANT *pv);
+
+  HRESULT STDMETHODCALLTYPE SetValue(
+    /* [in] */ __RPC__in REFPROPERTYKEY key,
+    /* [in] */ __RPC__in REFPROPVARIANT propvar);
+
+  HRESULT STDMETHODCALLTYPE Commit(void);
 };
