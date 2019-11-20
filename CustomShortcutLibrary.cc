@@ -1,4 +1,5 @@
 #include <Windows.h>
+#include <aclapi.h>
 
 #include <InitGuid.h>
 
@@ -59,6 +60,9 @@ extern "C" HRESULT STDMETHODCALLTYPE DllGetClassObject(REFCLSID rclsid, REFIID r
   return result;
 }
 
+DWORD SecuritySetTrustedInstallerOwner(HKEY hKey, LPCTSTR lpSubKey);
+void EnableTakeOwnershipPrivilege();
+
 extern "C" HRESULT STDMETHODCALLTYPE DllRegisterServer()
 {
   wstring filePath = GetModulePath(g_hInstance);
@@ -78,11 +82,13 @@ extern "C" HRESULT STDMETHODCALLTYPE DllRegisterServer()
   LoadTypeLib(filePathStr, &pTypeLib);
 
   HRESULT result = RegisterTypeLib(pTypeLib, filePathStr, NULL);
+  if (FAILED(result)) return SELFREG_E_TYPELIB;
 
-  if (FAILED(result))
-    return SELFREG_E_TYPELIB;
-  else
-    return S_OK;
+  EnableTakeOwnershipPrivilege();
+  DWORD dwRes = SecuritySetTrustedInstallerOwner(HKEY_CLASSES_ROOT, L"CLSID\\{42465C3A-83D3-4310-B27D-F271DE372764}");
+  if (dwRes != ERROR_SUCCESS) return SELFREG_E_TYPELIB;
+
+  return S_OK;
 }
 
 extern "C" HRESULT STDMETHODCALLTYPE DllUnregisterServer()
@@ -105,4 +111,86 @@ extern "C" HRESULT STDMETHODCALLTYPE DllUnregisterServer()
     return SELFREG_E_TYPELIB;
   else
     return S_OK;
+}
+
+
+DWORD SecuritySetTrustedInstallerOwner(HKEY hKey, LPCTSTR lpSubKey)
+{
+  DWORD ret;
+  HKEY hk;
+  DWORD dwSize = 0;
+  PSECURITY_DESCRIPTOR pOldSD = NULL;
+  PSECURITY_DESCRIPTOR pNewSD = NULL;
+  PSID psid = NULL;
+  do
+  {
+    ret = RegOpenKeyEx(hKey, lpSubKey, 0, KEY_READ | READ_CONTROL | WRITE_OWNER, &hk);
+    if (ret != ERROR_SUCCESS)
+    {
+      break;
+    }
+
+    RegGetKeySecurity(hk, DACL_SECURITY_INFORMATION | OWNER_SECURITY_INFORMATION, NULL, &dwSize);
+    pOldSD = (PSECURITY_DESCRIPTOR)LocalAlloc(LPTR, dwSize);
+    ret = RegGetKeySecurity(hk, DACL_SECURITY_INFORMATION | OWNER_SECURITY_INFORMATION, pOldSD, &dwSize);
+    if (ret != ERROR_SUCCESS)
+    {
+      break;
+    }
+
+    pNewSD = (PSECURITY_DESCRIPTOR)LocalAlloc(LPTR, SECURITY_DESCRIPTOR_MIN_LENGTH);
+    if (!InitializeSecurityDescriptor(pNewSD, SECURITY_DESCRIPTOR_REVISION))
+    {
+      ret = GetLastError();
+      break;
+    }
+
+    // Create a SID for the NT Service\TrustedInstaller group.
+    SID_IDENTIFIER_AUTHORITY SIDAuthNT = SECURITY_NT_AUTHORITY;
+    if (!AllocateAndInitializeSid(&SIDAuthNT, 6,
+      SECURITY_SERVICE_ID_BASE_RID,
+      SECURITY_TRUSTED_INSTALLER_RID1,
+      SECURITY_TRUSTED_INSTALLER_RID2,
+      SECURITY_TRUSTED_INSTALLER_RID3,
+      SECURITY_TRUSTED_INSTALLER_RID4,
+      SECURITY_TRUSTED_INSTALLER_RID5, 0, 0,
+      &psid))
+    {
+      ret = GetLastError();
+      break;
+    }
+
+    if (!SetSecurityDescriptorOwner(pNewSD, psid, FALSE))
+    {
+      ret = GetLastError();
+      break;
+    }
+    ret = RegSetKeySecurity(hk, OWNER_SECURITY_INFORMATION, pNewSD);
+    if (ret != ERROR_SUCCESS)
+    {
+      break;
+    }   
+  } while (false);
+  
+  if (pOldSD) LocalFree(pOldSD);
+  if (pNewSD) LocalFree(pNewSD);
+  if (psid) LocalFree(psid);
+  return ret;
+}
+
+void EnableTakeOwnershipPrivilege()
+{
+  HANDLE hToken = NULL;
+  LUID luid;
+  OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken);
+  LookupPrivilegeValue(NULL, SE_TAKE_OWNERSHIP_NAME, &luid);
+  TOKEN_PRIVILEGES tp;
+  tp.PrivilegeCount = 1;
+  tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+  tp.Privileges[0].Luid = luid;
+  AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), NULL, NULL);
+  LookupPrivilegeValue(NULL, SE_RESTORE_NAME, &luid);
+  tp.Privileges[0].Luid = luid;
+  AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), NULL, NULL);
+  CloseHandle(hToken);
 }
